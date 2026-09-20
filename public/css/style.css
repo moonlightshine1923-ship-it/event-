@@ -253,6 +253,8 @@ body {
   opacity: 0;
   pointer-events: none;
 }
+/* Mode Accueil : ni menu ni flèche — la sidebar n'apparaît que dans la page d'un événement */
+#appWrapper.home-mode .sidebar-arrow { display: none; }
 #appWrapper.home-mode .main { margin-left: 0; }
 
 .topbar {
@@ -662,6 +664,13 @@ body {
 .login-card .input-icon { position: relative; }
 .login-card .input-icon i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #a2b1cc; }
 .login-card .form-control { padding-left: 40px; }
+.login-card .toggle-pwd {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: transparent; border: none; color: #a2b1cc;
+  padding: 4px 6px; line-height: 1; cursor: pointer; border-radius: 8px;
+}
+.login-card .toggle-pwd:hover { color: var(--primary); }
+.login-card .toggle-pwd i { position: static; transform: none; font-size: 1rem; }
 
 /* ----------  Modals  ---------- */
 .modal-content {
@@ -694,8 +703,30 @@ body {
 .content-section { animation: fadeUp .32s ease; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
+/* ----------  Petite flèche toggle menu (petite fenêtre / mobile)  ---------- */
+.sidebar-arrow {
+  display: none;
+  position: fixed; top: 50%; transform: translateY(-50%);
+  left: 0; z-index: 1060;
+  width: 28px; height: 58px;
+  align-items: center; justify-content: center;
+  padding: 0;
+  background: linear-gradient(180deg, var(--sb-bg) 0%, var(--sb-bg-2) 100%);
+  color: #dce7fb;
+  border: 1px solid rgba(255,255,255,.18); border-left: none;
+  border-radius: 0 14px 14px 0;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: left .3s ease;
+}
+.sidebar-arrow i { font-size: .95rem; transition: transform .3s ease; }
+.sidebar-arrow:hover { color: #fff; width: 32px; }
+.sidebar-arrow.open { left: var(--sidebar-width); }
+.sidebar-arrow.open i { transform: rotate(180deg); }
+
 /* ----------  Responsive  ---------- */
 @media (max-width: 992px) {
+  .sidebar-arrow { display: flex; }
   .sidebar { transform: translateX(-100%); box-shadow: var(--shadow-lg); }
   .sidebar.show { transform: translateX(0); }
   .main { margin-left: 0; }

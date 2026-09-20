@@ -87,16 +87,6 @@ function logout(){
   $('#loginPage').classList.remove('d-none');
 }
 
-async function firstAdmin(){
-  const u=$('#firstUsername').value, e=$('#firstEmail').value, p=$('#firstPassword').value;
-  try{
-    const data = await fetch(API+'/auth/first-admin',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u,email:e,password:p})}).then(r=>r.json());
-    if(data.error) throw new Error(data.error);
-    toast('Super admin créé, connectez-vous');
-    $('#firstAdminForm').classList.add('d-none');
-  }catch(err){ toast(err.message,'danger'); }
-}
-
 function initialsOf(name){
   if(!name) return 'U';
   const parts = String(name).trim().split(/[\s._-]+/).filter(Boolean);
@@ -1110,14 +1100,6 @@ async function generateStands(){
   const cols = parseInt($('#genCols').value)||8;
   try{ const r= await apiFetch(`/stands/event/${currentEventId}/generate`,{method:'POST', body:{rows,cols}}); toast(r.message); loadStandsPlan(); }catch(err){ toast(err.message,'danger'); }
 }
-async function initDb(){
-  try{
-    const r = await fetch(API+'/init-db',{method:'POST'}).then(r=>r.json());
-    if(r.error) throw new Error(r.error);
-    toast('Base initialisée - 58 wilayas');
-    loadWilayas();
-  }catch(err){ toast(err.message,'danger'); }
-}
 function deleteEvent(id){
   if(!confirm('Supprimer événement?')) return;
   apiFetch('/events/'+id,{method:'DELETE'}).then(async ()=>{
@@ -1158,6 +1140,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   if(token) initApp();
   $('#loginForm')?.addEventListener('submit',(e)=>{ e.preventDefault(); login(); });
+  $('#togglePwdIcon')?.closest('.toggle-pwd')?.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); togglePassword(); }});
   $('#eventSelector')?.addEventListener('change',(e)=>{ if(e.target.value){ selectEvent(e.target.value); }});
   $('#topbarEventSelector')?.addEventListener('change',(e)=>{ if(e.target.value){ selectEvent(e.target.value); }});
   $('#filterHotelWilaya')?.addEventListener('change', onWilayaChangeForHotels);

@@ -76,47 +76,6 @@ app.get('/api/health', async (req,res)=>{
   }
 });
 
-// Init DB route (dev) - robuste même si DB n'existe pas
-app.post('/api/init-db', async (req,res)=>{
-  let tempConn;
-  try {
-    const schemaPath = path.join(__dirname,'sql','schema.sql');
-    const seedPath = path.join(__dirname,'sql','seed_wilayas.sql');
-    if(!fs.existsSync(schemaPath)) return res.status(404).json({error:'schema.sql not found'});
-
-    // Connexion sans DB pour créer la DB si besoin
-    const { default: mysql } = await import('mysql2/promise');
-    tempConn = await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      port: process.env.DB_PORT || 3306,
-      multipleStatements: true
-    });
-    const dbName = process.env.DB_NAME || 'event_manager_db';
-    await tempConn.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
-    await tempConn.query(`USE \`${dbName}\``);
-
-    const schema = fs.readFileSync(schemaPath,'utf8');
-    const cleaned = schema.replace(/CREATE DATABASE[\s\S]*?;/i, '').replace(/USE[\s\S]*?;/i, '');
-    const statements = cleaned.split(';').filter(s=>s.trim().length>10);
-    for(const stmt of statements){
-      if(stmt.trim()){
-        try { await tempConn.query(stmt); } catch(e){ if(!e.message.includes('already exists')) console.warn(e.message.substring(0,200)); }
-      }
-    }
-    if(fs.existsSync(seedPath)){
-      const seed = fs.readFileSync(seedPath,'utf8');
-      try { await tempConn.query(seed); } catch(e){ console.warn('Seed:', e.message.substring(0,200)); }
-    }
-    res.json({ message:`DB ${dbName} initialisée avec 58 wilayas` });
-  } catch(e){
-    res.status(500).json({error:e.message, stack:e.stack});
-  } finally {
-    if(tempConn) await tempConn.end().catch(()=>{});
-  }
-});
-
 // Audit middleware - après routes mais avant 404
 app.use(auditMiddleware);
 
