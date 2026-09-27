@@ -3,21 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Event Manager Algérie - Gestion Événements</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f6bff'/%3E%3Ctext x='16' y='22' font-size='18' font-family='sans-serif' fill='%23fff' text-anchor='middle'%3E%E2%97%86%3C/text%3E%3C/svg%3E">
+<title>Event App — Gestion Événements Algérie</title>
+<link rel="icon" type="image/png" href="img/logo.png">
 <link href="vendor/fonts-gf.css" rel="stylesheet">
 <link href="vendor/bootstrap.min.css" rel="stylesheet">
 <link href="vendor/bootstrap-icons.css" rel="stylesheet">
-<link href="css/style.css?v=9" rel="stylesheet">
+<link href="css/style.css?v=10" rel="stylesheet">
 </head>
 <body>
 
 <!-- Login Page -->
 <div id="loginPage" class="login-wrapper">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
   <div class="login-card card p-0">
     <div class="login-head">
-      <div class="login-logo"><i class="bi bi-calendar2-week"></i></div>
-      <h3 class="fw-bold">Event Manager <span style="color:var(--primary)">DZ</span></h3>
+      <div class="login-logo"><img src="img/logo-mark.png" alt="Logo Event App"></div>
+      <img class="login-wordmark" src="img/logo-wordmark.png" alt="Event app">
+      <div class="login-sub">Plateforme de gestion d'événements · Algérie</div>
     </div>
     <div class="login-body">
       <form id="loginForm">
@@ -67,10 +71,10 @@
 <!-- Sidebar -->
 <div class="sidebar">
   <div class="brand" style="cursor:pointer" onclick="showSection('events')" title="Retour à l'accueil">
-    <div class="sb-logo"><i class="bi bi-calendar2-week"></i></div>
+    <div class="sb-logo"><img src="img/logo-mark.png" alt="Logo Event App"></div>
     <div class="sb-brand-text">
-      <span class="sb-brand-title">EventManager DZ</span>
-      <span class="sb-brand-sub">58 Wilayas</span>
+      <span class="sb-brand-title">Event App</span>
+      <span class="sb-brand-sub">EventManager DZ · 58 Wilayas</span>
     </div>
   </div>
   <div class="current-event-wrap">
