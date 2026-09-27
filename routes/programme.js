@@ -1,21 +1,21 @@
 import express from 'express';
 import pool from '../config/db.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, requireRead, requireWrite } from '../middleware/auth.js';
 import upload from '../middleware/upload.js';
 const router = express.Router();
 
-router.get('/event/:eventId', async (req,res)=>{
+router.get('/event/:eventId', authenticate, requireRead('programmes','dashboard'), async (req,res)=>{
   const [rows]= await pool.query('SELECT * FROM programmes WHERE event_id=? ORDER BY jour, heure_debut',[req.params.eventId]);
   res.json(rows);
 });
 
-router.get('/:id', async (req,res)=>{
+router.get('/:id', authenticate, requireRead('programmes','dashboard'), async (req,res)=>{
   const [rows]= await pool.query('SELECT * FROM programmes WHERE id=?',[req.params.id]);
   if(!rows.length) return res.status(404).json({error:'Non trouvé'});
   res.json(rows[0]);
 });
 
-router.post('/', authenticate, upload.single('presentation'), async (req,res)=>{
+router.post('/', authenticate, requireWrite('programmes'), upload.single('presentation'), async (req,res)=>{
   const { event_id, jour, heure_debut, heure_fin, titre, description, type, intervenant_nom, intervenant_prenom, intervenant_poste, intervenant_is_vip, intervenant_email, theme, salle, ordre } = req.body;
   if(!event_id||!jour||!heure_debut||!heure_fin||!titre) return res.status(400).json({error:'Champs requis'});
   const presentation_file = req.file ? req.file.path : null;
@@ -35,7 +35,7 @@ router.post('/', authenticate, upload.single('presentation'), async (req,res)=>{
   res.json({ id: result.insertId });
 });
 
-router.put('/:id', authenticate, upload.single('presentation'), async (req,res)=>{
+router.put('/:id', authenticate, requireWrite('programmes'), upload.single('presentation'), async (req,res)=>{
   const { jour, heure_debut, heure_fin, titre, description, type, intervenant_nom, intervenant_prenom, intervenant_poste, intervenant_is_vip, intervenant_email, theme, salle, ordre } = req.body;
   let q='UPDATE programmes SET jour=?,heure_debut=?,heure_fin=?,titre=?,description=?,type=?,intervenant_nom=?,intervenant_prenom=?,intervenant_poste=?,intervenant_is_vip=?,intervenant_email=?,theme=?,salle=?,ordre=?';
   const params=[jour,heure_debut,heure_fin,titre,description,type,intervenant_nom,intervenant_prenom,intervenant_poste,intervenant_is_vip?1:0,intervenant_email,theme,salle,ordre];
@@ -49,7 +49,7 @@ router.put('/:id', authenticate, upload.single('presentation'), async (req,res)=
   res.json({ message:'ok' });
 });
 
-router.delete('/:id', authenticate, async (req,res)=>{
+router.delete('/:id', authenticate, requireWrite('programmes'), async (req,res)=>{
   await pool.query('DELETE FROM programmes WHERE id=?',[req.params.id]);
   res.json({ message:'supprimé' });
 });

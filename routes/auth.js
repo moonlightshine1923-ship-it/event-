@@ -2,19 +2,31 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../config/db.js';
-import { authenticate, authorize, isPrivilegedRole } from '../middleware/auth.js';
+import { authenticate, isPrivilegedRole, superOnly } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Seuls super_admin / admin gèrent les utilisateurs
+const privileged = (req, res, next) =>
+  isPrivilegedRole(req.user?.role) ? next() : res.status(403).json({ error: 'Réservé aux super admin / admin' });
+
+// Rôles autorisés (manager & finance supprimés)
+const ALLOWED_ROLES = ['super_admin', 'admin', 'editor', 'viewer'];
+
 // Register first super_admin or admin creates users
-router.post('/register', authenticate, authorize('super_admin','admin'), async (req,res)=>{
+router.post('/register', authenticate, privileged, async (req,res)=>{
   const { username, email, password, role, permissions } = req.body;
   if(!username||!email||!password) return res.status(400).json({error:'Champs requis manquants'});
+  const cleanRole = ALLOWED_ROLES.includes(role) ? role : 'viewer';
+  // Seul un super_admin peut créer un super_admin ou un admin
+  if ((cleanRole === 'super_admin' || cleanRole === 'admin') && String(req.user.role||'').toLowerCase() !== 'super_admin') {
+    return res.status(403).json({ error: 'Seul le super admin peut créer un admin / super admin' });
+  }
   const hash = await bcrypt.hash(password, 10);
   try {
     const [result] = await pool.query(
       'INSERT INTO users (username,email,password_hash,role,permissions) VALUES (?,?,?,?,?)',
-      [username,email,hash,role||'manager', JSON.stringify(permissions||{})]
+      [username,email,hash,cleanRole, JSON.stringify(permissions||{})]
     );
     res.json({ id: result.insertId, message:'Utilisateur créé' });
   } catch(e){
@@ -51,20 +63,23 @@ router.get('/me', authenticate, async (req,res)=>{
   res.json(req.user);
 });
 
-router.get('/users', authenticate, authorize('super_admin','admin'), async (req,res)=>{
+router.get('/users', authenticate, privileged, async (req,res)=>{
   const [users] = await pool.query('SELECT id,username,email,role,permissions,is_active,created_at FROM users ORDER BY id DESC');
   res.json(users);
 });
 
-router.put('/users/:id', authenticate, authorize('super_admin','admin'), async (req,res)=>{
+router.put('/users/:id', authenticate, privileged, async (req,res)=>{
   const { role, permissions, is_active } = req.body;
-  await pool.query('UPDATE users SET role=?, permissions=?, is_active=? WHERE id=?',[role, JSON.stringify(permissions||{}), is_active?1:0, req.params.id]);
+  const cleanRole = ALLOWED_ROLES.includes(role) ? role : 'viewer';
+  // Seul un super_admin peut attribuer super_admin / admin
+  if ((cleanRole === 'super_admin' || cleanRole === 'admin') && String(req.user.role||'').toLowerCase() !== 'super_admin') {
+    return res.status(403).json({ error: 'Seul le super admin peut attribuer admin / super admin' });
+  }
+  await pool.query('UPDATE users SET role=?, permissions=?, is_active=? WHERE id=?',[cleanRole, JSON.stringify(permissions||{}), is_active?1:0, req.params.id]);
   res.json({ message:'Mis à jour' });
 });
 
-router.delete('/users/:id', authenticate, authorize('super_admin'), async (req,res)=>{
-  // Strict: only a genuine super_admin may delete users (normalize role check).
-  if(!isPrivilegedRole(req.user.role)) return res.status(403).json({ error:'Réservé au super admin' });
+router.delete('/users/:id', authenticate, superOnly, async (req,res)=>{
   await pool.query('DELETE FROM users WHERE id=?',[req.params.id]);
   res.json({ message:'Supprimé' });
 });

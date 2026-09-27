@@ -17,6 +17,10 @@ const pool = mysql.createPool({
 // Auto-migrate schema updates safely
 export const runAutoMigrations = async () => {
   const migrations = [
+    // Rôles : suppression de manager/finance -> super_admin, admin, editor, viewer
+    "ALTER TABLE users MODIFY COLUMN role VARCHAR(30) NOT NULL DEFAULT 'viewer'",
+    "UPDATE users SET role='editor' WHERE role='manager'",
+    "UPDATE users SET role='viewer' WHERE role='finance'",
     'ALTER TABLE hotels ADD COLUMN nb_chambres_single INT DEFAULT 0',
     'ALTER TABLE hotels ADD COLUMN nb_chambres_double INT DEFAULT 0',
     'ALTER TABLE hotels ADD COLUMN nb_chambres_suite INT DEFAULT 0',

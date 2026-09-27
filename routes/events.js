@@ -1,11 +1,11 @@
 import express from 'express';
 import pool from '../config/db.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, requireRead, requireWrite } from '../middleware/auth.js';
 import upload from '../middleware/upload.js';
 const router = express.Router();
 
 // List
-router.get('/', async (req,res)=>{
+router.get('/', authenticate, async (req,res)=>{
   const [rows]= await pool.query(`
     SELECT e.*, r.nom as rubrique_nom, w.nom as wilaya_nom,
     (SELECT COUNT(*) FROM personnes WHERE event_id=e.id) as total_personnes,
@@ -18,7 +18,7 @@ router.get('/', async (req,res)=>{
   res.json(rows);
 });
 
-router.get('/:id', async (req,res)=>{
+router.get('/:id', authenticate, async (req,res)=>{
   const [rows]= await pool.query(`
     SELECT e.*, r.nom as rubrique_nom, w.nom as wilaya_nom FROM events e
     LEFT JOIN rubriques r ON r.id=e.rubrique_id
@@ -28,7 +28,7 @@ router.get('/:id', async (req,res)=>{
   res.json(rows[0]);
 });
 
-router.post('/', authenticate, async (req,res)=>{
+router.post('/', authenticate, requireWrite('events'), async (req,res)=>{
   const { rubrique_id,titre,theme,description,emplacement,wilaya_id,date_debut,date_fin,heure_debut,heure_fin,budget_initial,nb_personnes_prevu,nb_invites,nb_exposants_prevu,nb_vip_prevu,statut } = req.body;
   if(!titre) return res.status(400).json({error:'Titre requis'});
   const [result]= await pool.query(
@@ -41,7 +41,7 @@ router.post('/', authenticate, async (req,res)=>{
   res.json({ id: result.insertId });
 });
 
-router.put('/:id', authenticate, async (req,res)=>{
+router.put('/:id', authenticate, requireWrite('events'), async (req,res)=>{
   const { rubrique_id,titre,theme,description,emplacement,wilaya_id,date_debut,date_fin,heure_debut,heure_fin,budget_initial,nb_personnes_prevu,nb_invites,nb_exposants_prevu,nb_vip_prevu,statut } = req.body;
   await pool.query(
     `UPDATE events SET rubrique_id=?,titre=?,theme=?,description=?,emplacement=?,wilaya_id=?,date_debut=?,date_fin=?,heure_debut=?,heure_fin=?,budget_initial=?,nb_personnes_prevu=?,nb_invites=?,nb_exposants_prevu=?,nb_vip_prevu=?,statut=? WHERE id=?`,
@@ -50,12 +50,12 @@ router.put('/:id', authenticate, async (req,res)=>{
   res.json({ message:'ok' });
 });
 
-router.delete('/:id', authenticate, async (req,res)=>{
+router.delete('/:id', authenticate, requireWrite('events'), async (req,res)=>{
   await pool.query('DELETE FROM events WHERE id=?',[req.params.id]);
   res.json({ message:'supprimé' });
 });
 
-router.post('/:id/plan-photo', authenticate, upload.single('plan_photo'), async (req,res)=>{
+router.post('/:id/plan-photo', authenticate, requireWrite('events'), upload.single('plan_photo'), async (req,res)=>{
   const plan_photo = req.file ? '/'+req.file.path : null;
   if(!plan_photo) return res.status(400).json({error:'Fichier requis'});
   await pool.query('UPDATE events SET plan_photo=? WHERE id=?',[plan_photo,req.params.id]);
@@ -63,7 +63,7 @@ router.post('/:id/plan-photo', authenticate, upload.single('plan_photo'), async 
 });
 
 // FINANCE SUMMARY
-router.get('/:id/finance', async (req,res)=>{
+router.get('/:id/finance', authenticate, requireRead('dashboard','events'), async (req,res)=>{
   const eventId = req.params.id;
   const [[event]] = await pool.query('SELECT * FROM events WHERE id=?',[eventId]);
   if(!event) return res.status(404).json({error:'Event non trouvé'});
@@ -107,7 +107,7 @@ router.get('/:id/finance', async (req,res)=>{
 });
 
 // GLOBAL STATS
-router.get('/:id/stats', async (req,res)=>{
+router.get('/:id/stats', authenticate, requireRead('dashboard','events'), async (req,res)=>{
   const eventId= req.params.id;
   const queries = {
     personnes: 'SELECT COUNT(*) as total, SUM(type="exposant") as exposants, SUM(type="invite_vip") as vip, SUM(type="invite_normal") as invites FROM personnes WHERE event_id=?',

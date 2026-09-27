@@ -1,9 +1,9 @@
 import express from 'express';
 import pool from '../config/db.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, requireRead, requireWrite } from '../middleware/auth.js';
 const router = express.Router();
 
-router.get('/event/:eventId', async (req,res)=>{
+router.get('/event/:eventId', authenticate, requireRead('reservations','dashboard'), async (req,res)=>{
   const [rows]= await pool.query(`
     SELECT rh.*, h.nom as hotel_nom, w.nom as wilaya_nom,
            (SELECT COUNT(*) FROM reservation_occupants WHERE reservation_id=rh.id) as nb_occupants
@@ -15,7 +15,7 @@ router.get('/event/:eventId', async (req,res)=>{
   res.json(rows);
 });
 
-router.get('/:id', async (req,res)=>{
+router.get('/:id', authenticate, requireRead('reservations','dashboard'), async (req,res)=>{
   const [resv]= await pool.query(`
     SELECT rh.*, h.nom as hotel_nom FROM reservations_hotel rh JOIN hotels h ON h.id=rh.hotel_id WHERE rh.id=?`, [req.params.id]);
   if(!resv.length) return res.status(404).json({error:'Non trouvé'});
@@ -25,7 +25,7 @@ router.get('/:id', async (req,res)=>{
   res.json({ ...resv[0], occupants });
 });
 
-router.post('/', authenticate, async (req,res)=>{
+router.post('/', authenticate, requireWrite('reservations'), async (req,res)=>{
   const { event_id, hotel_id, type_chambre, numero_chambre, capacite_max, prix_nuit, nb_nuits, date_arrivee, date_depart, statut, notes, occupant_ids } = req.body;
   if(!event_id||!hotel_id||!type_chambre) return res.status(400).json({error:'Champs requis'});
   const conn= await pool.getConnection();
@@ -51,7 +51,7 @@ router.post('/', authenticate, async (req,res)=>{
 });
 
 // Ajouter occupant
-router.post('/:id/occupants', authenticate, async (req,res)=>{
+router.post('/:id/occupants', authenticate, requireWrite('reservations'), async (req,res)=>{
   const { personne_id } = req.body;
   const reservationId= req.params.id;
   const [[resv]]= await pool.query('SELECT * FROM reservations_hotel WHERE id=?',[reservationId]);
@@ -63,7 +63,7 @@ router.post('/:id/occupants', authenticate, async (req,res)=>{
 });
 
 // Retirer occupant avec vérif alerte chambre sous-occupée
-router.delete('/:id/occupants/:personneId', authenticate, async (req,res)=>{
+router.delete('/:id/occupants/:personneId', authenticate, requireWrite('reservations'), async (req,res)=>{
   const { id, personneId } = req.params;
   const conn= await pool.getConnection();
   try {
@@ -87,7 +87,7 @@ router.delete('/:id/occupants/:personneId', authenticate, async (req,res)=>{
   } finally { conn.release(); }
 });
 
-router.put('/:id', authenticate, async (req,res)=>{
+router.put('/:id', authenticate, requireWrite('reservations'), async (req,res)=>{
   const { hotel_id, type_chambre, numero_chambre, capacite_max, prix_nuit, nb_nuits, date_arrivee, date_depart, statut, notes } = req.body;
   await pool.query(
     `UPDATE reservations_hotel SET hotel_id=?, type_chambre=?, numero_chambre=?, capacite_max=?, prix_nuit=?, nb_nuits=?, date_arrivee=?, date_depart=?, statut=?, notes=? WHERE id=?`,
@@ -96,13 +96,13 @@ router.put('/:id', authenticate, async (req,res)=>{
   res.json({ message: 'ok' });
 });
 
-router.delete('/:id', authenticate, async (req,res)=>{
+router.delete('/:id', authenticate, requireWrite('reservations'), async (req,res)=>{
   await pool.query('DELETE FROM reservations_hotel WHERE id=?',[req.params.id]);
   res.json({ message:'supprimé' });
 });
 
 // Alertes
-router.get('/event/:eventId/alerts', async (req,res)=>{
+router.get('/event/:eventId/alerts', authenticate, requireRead('reservations','dashboard'), async (req,res)=>{
   const [rows]= await pool.query('SELECT * FROM hotel_alerts WHERE event_id=? ORDER BY created_at DESC',[req.params.eventId]);
   res.json(rows);
 });

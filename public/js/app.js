@@ -39,7 +39,37 @@ function authHeaders(isJson=true){
   return h;
 }
 
+// Garde côté client (le serveur applique les mêmes règles) :
+// - viewer : aucune écriture
+// - editor : lecture/écriture limitées aux rubriques cochées
+function guardApi(url, method){
+  if(!currentUser || isPrivilegedRole(currentUser.role)) return;
+  const isWrite = !['GET','HEAD'].includes(method||'GET');
+  if(isWrite && isViewer()) throw new Error('Compte en lecture seule : action interdite');
+  const p = currentUser.permissions || {};
+  const has = (...ks)=> p.all || ks.some(k=>p[k]);
+  let keys = null, readOpen = false;
+  if(/^\/events\/\d+\/(finance|stats)/.test(url)) keys = ['dashboard','events'];
+  else if(/^\/(hotels)/.test(url)) keys = ['hotels','reservations'];
+  else if(/^\/personnes/.test(url)) keys = ['personnes','reservations','billets'];
+  else if(/^\/exposants/.test(url)) keys = ['exposants'];
+  else if(/^\/stands/.test(url)) keys = ['stands'];
+  else if(/^\/employes/.test(url)) keys = ['employes'];
+  else if(/^\/sponsors/.test(url)) keys = ['sponsors'];
+  else if(/^\/restauration/.test(url)) keys = ['restauration'];
+  else if(/^\/conventions/.test(url)) keys = ['conventions'];
+  else if(/^\/billets/.test(url)) keys = ['billets'];
+  else if(/^\/reservations/.test(url)) keys = ['reservations'];
+  else if(/^\/programmes/.test(url)) keys = ['programmes'];
+  else if(/^\/notifications/.test(url)) keys = ['dashboard'];
+  else if(/^\/events/.test(url)) { if(isWrite) keys = ['events']; else readOpen = true; }
+  else return; // rubriques, wilayas, auth… : données de navigation ouvertes
+  if(isWrite){ if(!has(...keys)) throw new Error('Rubrique non autorisée'); }
+  else { if(!has(...keys, 'dashboard')) throw new Error('Rubrique non autorisée'); }
+}
+
 async function apiFetch(url, opts={}){
+  guardApi(url, opts.method);
   opts.headers = { ...(opts.headers||{}), ...authHeaders(!opts.body || !(opts.body instanceof FormData)) };
   if(opts.body && typeof opts.body !== 'string' && !(opts.body instanceof FormData)){
     opts.body = JSON.stringify(opts.body);
@@ -83,6 +113,8 @@ async function login(){
 function logout(){
   localStorage.removeItem('token');
   token=null;
+  currentUser=null;
+  document.body.classList.remove('ro');
   $('#appWrapper').classList.add('d-none');
   $('#loginPage').classList.remove('d-none');
 }
@@ -95,7 +127,7 @@ function initialsOf(name){
 }
 function applyUser(){
   const uname = currentUser?.username || 'Utilisateur';
-  const role = currentUser?.role || 'Connecté';
+  const role = ROLE_LABELS[currentUser?.role] || currentUser?.role || 'Connecté';
   $('#userDisplay').textContent = uname;
   $('#userRole').textContent = role;
   $('#userChipName').textContent = uname;
@@ -118,15 +150,18 @@ async function initApp(){
     }catch{}
   }
   applyRoleVisibility();
+  initReadOnlyObserver();
   await loadWilayas();
   await loadEvents();
-  await loadHotels();
-  await refreshDashboard();
+  const allowed = allowedSections();
+  if(allowed.has('hotels')) await loadHotels();
+  if(allowed.has('dashboard')) await refreshDashboard();
   // check token
   $('#loginPage').classList.add('d-none');
   $('#appWrapper').classList.remove('d-none');
-  // Écran d'accueil par défaut : menu principal des événements
-  showSection('events');
+  // Écran d'accueil : première rubrique autorisée
+  const first = ALL_SECTIONS.find(k=>allowed.has(k)) || 'events';
+  showSection(first);
 }
 
 // ——— Accès / visibilité selon le rôle ———
@@ -137,22 +172,68 @@ function isPrivilegedRole(r){
   const n = normalizeRole(r);
   return n==='superadmin' || n==='admin' || n==='administrator';
 }
-// Full management access: admin/super-admin role, OR an account whose permissions
-// grant the "users" module or "all" access.
+function isSuperAdmin(){ return normalizeRole(currentUser?.role)==='superadmin'; }
+function isViewer(){ return normalizeRole(currentUser?.role)==='viewer'; }
+// Gestion des utilisateurs : réservée aux super_admin / admin
 function canManageUsers(){
-  if(!currentUser) return false;
-  if(isPrivilegedRole(currentUser.role)) return true;
-  const p = currentUser.permissions || {};
-  return !!(p.all || p.users);
+  return !!currentUser && isPrivilegedRole(currentUser.role);
 }
+
+// Toutes les rubriques de l'application
+const ALL_SECTIONS = ['events','dashboard','hotels','stands','personnes','exposants','employes','sponsors','restauration','conventions','billets','reservations','programmes'];
+
+// Rubriques affichées dans la session de l'utilisateur courant :
+// - super_admin : tout + utilisateurs + journal d'audit
+// - admin       : tout + utilisateurs (pas d'audit)
+// - editor/viewer : uniquement les rubriques cochées à la création du compte
+function allowedSections(){
+  if(!currentUser) return new Set();
+  const n = normalizeRole(currentUser.role);
+  if(n==='superadmin') return new Set([...ALL_SECTIONS,'users','audit']);
+  if(n==='admin') return new Set([...ALL_SECTIONS,'users']);
+  const p = currentUser.permissions || {};
+  return new Set(ALL_SECTIONS.filter(k=>p.all||p[k]));
+}
+function canSeeSection(id){ return allowedSections().has(id); }
+
 function applyRoleVisibility(){
-  const can = canManageUsers();
-  const link = document.querySelector('.sidebar .nav-link[data-section="users"]');
-  if(link) link.style.display = can ? '' : 'none';
-  if(!can){
-    const sec = $('#section-users');
-    if(sec && !sec.classList.contains('d-none')) sec.classList.add('d-none');
-  }
+  const allowed = allowedSections();
+  // Sidebar : seules les rubriques autorisées restent visibles
+  document.querySelectorAll('.sidebar .nav-link[data-section]').forEach(link=>{
+    link.style.display = allowed.has(link.dataset.section) ? '' : 'none';
+  });
+  // Masque les en-têtes de groupe sans aucun lien visible
+  document.querySelectorAll('.sidebar .nav-section').forEach(h=>{
+    let el = h.nextElementSibling, visible = false;
+    while(el && !el.classList.contains('nav-section') && !el.classList.contains('user-box')){
+      if(el.classList.contains('nav-link') && el.style.display!=='none'){ visible = true; break; }
+      el = el.nextElementSibling;
+    }
+    h.style.display = visible ? '' : 'none';
+  });
+  // Boutons "Nouvel Événement" (topbar / accueil / dashboard) : uniquement si rubrique events + pas lecture seule
+  const evOk = allowed.has('events') && !isViewer();
+  document.querySelectorAll('[data-bs-target="#modalEvent"]').forEach(b=>{ b.style.display = evOk ? '' : 'none'; });
+  // Lecture seule : on masque tous les contrôles d'écriture de l'interface
+  document.body.classList.toggle('ro', isViewer());
+  if(isViewer()) hideWriteControls(document);
+}
+
+// Sélecteur des contrôles d'écriture (ajouter / modifier / supprimer / générer)
+const WRITE_SEL = 'button[data-bs-target^="#modal"], button[onclick^="edit"], button[onclick^="delete"], button[onclick^="generate"], button[onclick*="DELETE"]';
+function hideWriteControls(root){
+  if(!document.body.classList.contains('ro')) return;
+  if(root.matches && root.matches(WRITE_SEL)) root.style.display = 'none';
+  if(root.querySelectorAll) root.querySelectorAll(WRITE_SEL).forEach(b=>b.style.display='none');
+}
+let _roObserver = null;
+function initReadOnlyObserver(){
+  if(_roObserver) return;
+  _roObserver = new MutationObserver(muts=>{
+    if(!document.body.classList.contains('ro')) return;
+    muts.forEach(m=>m.addedNodes.forEach(n=>{ if(n.nodeType===1) hideWriteControls(n); }));
+  });
+  _roObserver.observe(document.body,{childList:true,subtree:true});
 }
 
 async function loadWilayas(){
@@ -643,27 +724,34 @@ async function loadAudit(){
   }catch{}
 }
 
-// Users & Permissions
+// Users & Permissions — les rubriques cochées = sections visibles dans la session
 const PERM_MODULES = [
-  { k:'dashboard',      label:'Dashboard',        icon:'bi-speedometer2' },
-  { k:'events',         label:'Événements',       icon:'bi-calendar2-week' },
-  { k:'hotels',         label:'Wilayas & Hôtels', icon:'bi-building' },
-  { k:'stands',         label:'Stands & Plan',    icon:'bi-map' },
-  { k:'personnes',      label:'Participants',     icon:'bi-people' },
-  { k:'exposants',      label:'Exposants',        icon:'bi-shop' },
-  { k:'employes',       label:'Employés',         icon:'bi-person-badge' },
-  { k:'sponsors',       label:'Sponsors',         icon:'bi-award' },
-  { k:'restauration',   label:'Restauration',     icon:'bi-cup-hot' },
-  { k:'conventions',    label:'Conventions',      icon:'bi-file-earmark-text' },
-  { k:'billets',        label:'Billets Avion',    icon:'bi-airplane' },
-  { k:'reservations',   label:'Réservations Hôtel', icon:'bi-door-closed' },
-  { k:'programmes',     label:'Programme',        icon:'bi-journal-text' },
-  { k:'notifications',  label:'Notifications',    icon:'bi-bell' },
-  { k:'audit',          label:'Journal Audit',    icon:'bi-clock-history' },
-  { k:'users',          label:'Utilisateurs',     icon:'bi-person-gear' },
-  { k:'finance',        label:'Finance',          icon:'bi-wallet2' }
+  { k:'events',         label:'Accueil / Événements', icon:'bi-calendar2-week' },
+  { k:'dashboard',      label:'Dashboard Finance',    icon:'bi-speedometer2' },
+  { k:'hotels',         label:'Wilayas & Hôtels',     icon:'bi-building' },
+  { k:'stands',         label:'Stands & Plan',        icon:'bi-map' },
+  { k:'personnes',      label:'Participants',         icon:'bi-people' },
+  { k:'exposants',      label:'Exposants',            icon:'bi-shop' },
+  { k:'employes',       label:'Employés & Équipe',    icon:'bi-person-badge' },
+  { k:'sponsors',       label:'Sponsors',             icon:'bi-award' },
+  { k:'restauration',   label:'Restauration',         icon:'bi-cup-hot' },
+  { k:'conventions',    label:'Conventions',          icon:'bi-file-earmark-text' },
+  { k:'billets',        label:'Billets Avion',        icon:'bi-airplane' },
+  { k:'reservations',   label:'Réserv. Hôtel',        icon:'bi-door-closed' },
+  { k:'programmes',     label:'Programme',            icon:'bi-journal-text' }
 ];
-const ROLE_LABELS = { super_admin:'Super Admin', admin:'Admin', manager:'Manager', finance:'Finance', viewer:'Lecture seule' };
+const ROLE_LABELS = { super_admin:'Super Admin', admin:'Admin', editor:'Lecture / Écriture', viewer:'Lecture seule' };
+
+// Quand on change le rôle dans le modal utilisateur :
+// super_admin / admin => grille de rubriques désactivée (ils ont tout)
+function onUserRoleChange(){
+  const priv = isPrivilegedRole($('#userRoleSelect')?.value);
+  const grid = $('#permGrid');
+  if(grid){ grid.style.opacity = priv ? '.45' : '1'; grid.style.pointerEvents = priv ? 'none' : ''; }
+  $('#permPrivNote')?.classList.toggle('d-none', !priv);
+  $('#permRoleHint')?.classList.toggle('d-none', priv);
+  if(priv) checkPerms({ all:true });
+}
 
 function renderPermGrid(){
   const grid = $('#permGrid'); if(!grid) return;
@@ -712,7 +800,7 @@ async function loadUsers(){
       const canEdit = canManageUsers();
       return `<tr>
         <td><b>${u.username}</b></td><td>${u.email||'—'}</td>
-        <td><span class="badge ${u.role==='super_admin'?'bg-soft-warning':u.role==='admin'?'bg-soft-primary':u.role==='viewer'?'bg-soft-secondary':'bg-soft-info'}">${ROLE_LABELS[u.role]||u.role}</span></td>
+        <td><span class="badge ${u.role==='super_admin'?'bg-soft-warning':u.role==='admin'?'bg-soft-primary':u.role==='viewer'?'bg-soft-secondary':u.role==='editor'?'bg-soft-info':'bg-soft-secondary'}">${ROLE_LABELS[u.role]||u.role}</span></td>
         <td>${permLabel}</td>
         <td><span class="badge ${u.is_active?'bg-soft-success':'bg-soft-danger'}">${u.is_active?'Actif':'Désactivé'}</span></td>
         <td>${canEdit?`
@@ -746,12 +834,13 @@ function editUser(id){
     $('#userEmail').value=u.email;
     $('#userPassword').value='';
     $('#userPassword').placeholder='Laisser vide pour ne pas changer';
-    $('#userRoleSelect').value=u.role;
+    $('#userRoleSelect').value=ROLE_LABELS[u.role]?u.role:'viewer';
     $('#userActive').checked=!!u.is_active;
     $('#modalUserTitle').textContent='Modifier '+u.username;
     $('#userSubmitBtn').textContent='Enregistrer';
     // super_admin & admin ont toujours tous les privilèges
     checkPerms(isPrivilegedRole(u.role) ? { all:true } : u.permissions);
+    onUserRoleChange();
     bootstrap.Modal.getOrCreateInstance($('#modalUser')).show();
   }).catch(e=>toast(e.message,'danger'));
 }
@@ -807,6 +896,10 @@ const SECTION_META = {
   audit:       { t:'Journal d\'Audit'}
 };
 function showSection(id){
+  if(currentUser && !allowedSections().has(id)){
+    toast('Rubrique non accessible avec ce compte','danger');
+    return;
+  }
   if(id==='users' && !canManageUsers()){
     toast('Accès réservé aux administrateurs','danger');
     return;
@@ -1126,10 +1219,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     btn.addEventListener('click', ()=>openCreateEventModal());
   });
   $('#formUser')?.addEventListener('submit', submitUser);
-  $('#userRoleSelect')?.addEventListener('change',(e)=>{
-    // super_admin & admin → tous les privilèges automatiquement
-    if(isPrivilegedRole(e.target.value)) checkPerms({ all:true });
-  });
+  $('#userRoleSelect')?.addEventListener('change', onUserRoleChange);
+  onUserRoleChange();
   $('#userChip')?.addEventListener('click', toggleUserMenu);
   document.addEventListener('click',(e)=>{
     const chip = $('#userChip');

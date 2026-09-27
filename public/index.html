@@ -8,7 +8,7 @@
 <link href="vendor/fonts-gf.css" rel="stylesheet">
 <link href="vendor/bootstrap.min.css" rel="stylesheet">
 <link href="vendor/bootstrap-icons.css" rel="stylesheet">
-<link href="css/style.css?v=11" rel="stylesheet">
+<link href="css/style.css?v=12" rel="stylesheet">
 </head>
 <body>
 
@@ -371,7 +371,7 @@
               <tbody id="usersTableBody"></tbody>
             </table>
           </div>
-          <div class="card-footer small text-muted"><i class="bi bi-info-circle me-1"></i>Les rôles prédéfinis (super_admin, admin, manager, finance, viewer) sont complétés par des permissions détaillées par module. Seul un super_admin peut supprimer un utilisateur.</div>
+          <div class="card-footer small text-muted"><i class="bi bi-info-circle me-1"></i>Rôles : <b>Super Admin</b> (tout + journal d'audit), <b>Admin</b> (toutes les rubriques), <b>Lecture/Écriture</b> et <b>Lecture seule</b> limités aux rubriques cochées. Seul un Super Admin peut supprimer un utilisateur.</div>
         </div>
       </div>
 
@@ -505,25 +505,31 @@
   <div class="col-md-6"><label class="form-label">Nom d'utilisateur</label><input name="username" id="userUsername" class="form-control" required></div>
   <div class="col-md-6"><label class="form-label">Email</label><input name="email" id="userEmail" type="email" class="form-control" required></div>
   <div class="col-md-6"><label class="form-label">Mot de passe</label><input name="password" id="userPassword" type="password" class="form-control" autocomplete="new-password"></div>
-  <div class="col-md-6"><label class="form-label">Rôle</label><select name="role" id="userRoleSelect" class="form-select">
-    <option value="super_admin">Super Admin</option>
-    <option value="admin">Admin</option>
-    <option value="manager" selected>Manager</option>
-    <option value="finance">Finance</option>
-    <option value="viewer">Lecture seule</option>
+  <div class="col-md-6"><label class="form-label">Rôle</label><select name="role" id="userRoleSelect" class="form-select" onchange="onUserRoleChange()">
+    <option value="super_admin">Super Admin — tout + journal d'audit</option>
+    <option value="admin">Admin — toutes les rubriques</option>
+    <option value="editor">Lecture / Écriture — rubriques choisies</option>
+    <option value="viewer" selected>Lecture seule — rubriques choisies</option>
   </select></div>
   <div class="col-12">
     <div class="d-flex justify-content-between align-items-center">
-      <label class="form-label mb-0">Permissions (ce que l'utilisateur peut faire)</label>
+      <label class="form-label mb-0">Rubriques accessibles (ce que l'utilisateur verra dans sa session)</label>
       <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleAllPerms()"><i class="bi bi-check2-all me-1"></i>Tout cocher / décocher</button>
     </div>
+    <div id="permPrivNote" class="alert alert-info py-2 mt-2 d-none" style="font-size:.78rem">
+      <i class="bi bi-shield-check me-1"></i>Les rôles <b>Super Admin</b> et <b>Admin</b> ont automatiquement <b>toutes les rubriques</b> (le journal d'audit est réservé au Super Admin).
+    </div>
     <div class="row g-2 mt-2 p-3 rounded" style="background:var(--surface-2);border:1px solid var(--line-2)" id="permGrid"></div>
+    <div class="form-text mt-2" id="permRoleHint">
+      <b>Lecture seule</b> : consulte les rubriques cochées, sans rien ajouter / modifier / supprimer.
+      <b>Lecture / Écriture</b> : ajoute, modifie et supprime dans les rubriques cochées uniquement.
+    </div>
   </div>
   <div class="col-12"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="is_active" id="userActive" checked><label class="form-check-label" for="userActive">Compte activé</label></div></div>
 </div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary" id="userSubmitBtn">Créer Utilisateur</button></div></form></div></div></div>
 
 <script src="vendor/bootstrap.bundle.min.js"></script>
-<script src="js/app.js?v=8"></script>
+<script src="js/app.js?v=9"></script>
 <script>
 // Flèche latérale : ouvrir / fermer le menu (petits écrans) — 100% autonome
 (function(){

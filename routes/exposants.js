@@ -1,11 +1,11 @@
 import express from 'express';
 import pool from '../config/db.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, requireRead, requireWrite } from '../middleware/auth.js';
 import upload from '../middleware/upload.js';
 const router = express.Router();
 
 // Liste par event
-router.get('/event/:eventId', async (req,res)=>{
+router.get('/event/:eventId', authenticate, requireRead('exposants','dashboard'), async (req,res)=>{
   const [rows]= await pool.query(`
     SELECT ex.*, p.nom, p.prenom, p.email, p.telephone, p.entreprise, p.type, p.poste, p.wilaya_id,
            s.numero as stand_numero, s.zone, s.statut as stand_statut
@@ -17,7 +17,7 @@ router.get('/event/:eventId', async (req,res)=>{
   res.json(rows);
 });
 
-router.get('/:id', async (req,res)=>{
+router.get('/:id', authenticate, requireRead('exposants','dashboard'), async (req,res)=>{
   const [rows]= await pool.query(`
     SELECT ex.*, p.nom, p.prenom, p.email, p.telephone, p.entreprise, p.type, p.poste, p.wilaya_id,
            s.numero as stand_numero, s.zone, s.statut as stand_statut
@@ -29,7 +29,7 @@ router.get('/:id', async (req,res)=>{
   res.json(rows[0]);
 });
 
-router.post('/', authenticate, upload.single('fichier'), async (req,res)=>{
+router.post('/', authenticate, requireWrite('exposants'), upload.single('fichier'), async (req,res)=>{
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -80,7 +80,7 @@ router.post('/', authenticate, upload.single('fichier'), async (req,res)=>{
   }
 });
 
-router.put('/:id', authenticate, upload.single('fichier'), async (req,res)=>{
+router.put('/:id', authenticate, requireWrite('exposants'), upload.single('fichier'), async (req,res)=>{
   const { fiche_technique, convoque_par, domaine_activite, superficie_demandee, a_paye, methode_paiement, montant_paye, montant_restant, besoins_speciaux } = req.body;
   const fichier_path = req.file ? '/'+req.file.path : null;
   if(fichier_path){
@@ -97,7 +97,7 @@ router.put('/:id', authenticate, upload.single('fichier'), async (req,res)=>{
   res.json({ message:'ok' });
 });
 
-router.delete('/:id', authenticate, async (req,res)=>{
+router.delete('/:id', authenticate, requireWrite('exposants'), async (req,res)=>{
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();

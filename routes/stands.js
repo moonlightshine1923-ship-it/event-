@@ -1,9 +1,9 @@
 import express from 'express';
 import pool from '../config/db.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, requireRead, requireWrite } from '../middleware/auth.js';
 const router = express.Router();
 
-router.get('/event/:eventId', async (req,res)=>{
+router.get('/event/:eventId', authenticate, requireRead('stands','dashboard'), async (req,res)=>{
   const [rows]= await pool.query(`
     SELECT s.*, ex.id as exposant_id_ref, p.nom, p.prenom, p.entreprise, p.email
     FROM stands s
@@ -13,7 +13,7 @@ router.get('/event/:eventId', async (req,res)=>{
   res.json(rows);
 });
 
-router.post('/', authenticate, async (req,res)=>{
+router.post('/', authenticate, requireWrite('stands'), async (req,res)=>{
   const { event_id, numero, zone, taille, superficie, pos_x, pos_y, width, height, statut, prix, equipements } = req.body;
   if(!event_id||!numero) return res.status(400).json({error:'event_id et numero requis'});
   try {
@@ -27,7 +27,7 @@ router.post('/', authenticate, async (req,res)=>{
   }
 });
 
-router.put('/:id', authenticate, async (req,res)=>{
+router.put('/:id', authenticate, requireWrite('stands'), async (req,res)=>{
   const { numero, zone, taille, superficie, pos_x, pos_y, width, height, statut, prix, equipements, exposant_id } = req.body;
   await pool.query(
     `UPDATE stands SET numero=?,zone=?,taille=?,superficie=?,pos_x=?,pos_y=?,width=?,height=?,statut=?,prix=?,equipements=?,exposant_id=? WHERE id=?`,
@@ -37,7 +37,7 @@ router.put('/:id', authenticate, async (req,res)=>{
 });
 
 // Générer plan automatique
-router.post('/event/:eventId/generate', authenticate, async (req,res)=>{
+router.post('/event/:eventId/generate', authenticate, requireWrite('stands'), async (req,res)=>{
   const { rows=5, cols=8, zone='A', taille='3x3' } = req.body;
   const eventId= req.params.eventId;
   const [existing]= await pool.query('SELECT COUNT(*) as c FROM stands WHERE event_id=?',[eventId]);
@@ -66,12 +66,12 @@ router.post('/event/:eventId/generate', authenticate, async (req,res)=>{
   } finally { conn.release(); }
 });
 
-router.delete('/:id', authenticate, async (req,res)=>{
+router.delete('/:id', authenticate, requireWrite('stands'), async (req,res)=>{
   await pool.query('DELETE FROM stands WHERE id=?',[req.params.id]);
   res.json({ message:'supprimé' });
 });
 
-router.delete('/event/:eventId/all', authenticate, async (req,res)=>{
+router.delete('/event/:eventId/all', authenticate, requireWrite('stands'), async (req,res)=>{
   await pool.query('DELETE FROM stands WHERE event_id=?',[req.params.eventId]);
   res.json({ message:'tous supprimés' });
 });

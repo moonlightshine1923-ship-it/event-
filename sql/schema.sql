@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
   username VARCHAR(100) UNIQUE NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  role ENUM('super_admin','admin','manager','finance','viewer') DEFAULT 'manager',
+  role VARCHAR(30) NOT NULL DEFAULT 'viewer', -- super_admin | admin | editor (lecture/ecriture) | viewer (lecture seule)
   permissions JSON,
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

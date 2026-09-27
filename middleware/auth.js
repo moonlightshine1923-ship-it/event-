@@ -27,6 +27,36 @@ export const isPrivilegedRole = (r) => {
   return n === 'superadmin' || n === 'admin' || n === 'administrator';
 };
 
+// Réservé au super admin (rôle admin exclu) — utilisé pour le journal d'audit
+// et la suppression d'utilisateurs.
+export const superOnly = (req, res, next) => {
+  if (normalizeRole(req.user?.role) === 'superadmin') return next();
+  return res.status(403).json({ error: 'Réservé au super admin' });
+};
+
+const isWriteMethod = (req) => !['GET', 'HEAD', 'OPTIONS'].includes(req.method);
+
+// Accès en lecture à une rubrique : super_admin/admin passent toujours ;
+// editor & viewer doivent avoir la rubrique dans leurs permissions.
+export const requireRead = (...keys) => (req, res, next) => {
+  if (isPrivilegedRole(req.user?.role)) return next();
+  const p = req.user.permissions || {};
+  if (p.all || keys.some(k => p[k])) return next();
+  return res.status(403).json({ error: 'Rubrique non autorisée' });
+};
+
+// Accès en écriture (POST/PUT/DELETE) : interdit au rôle viewer (lecture seule),
+// et limité aux rubriques sélectionnées pour le rôle editor.
+export const requireWrite = (...keys) => (req, res, next) => {
+  if (isPrivilegedRole(req.user?.role)) return next();
+  if (normalizeRole(req.user?.role) === 'viewer') {
+    return res.status(403).json({ error: 'Compte en lecture seule : ajout/modification/suppression interdits' });
+  }
+  const p = req.user.permissions || {};
+  if (p.all || keys.some(k => p[k])) return next();
+  return res.status(403).json({ error: 'Rubrique non autorisée' });
+};
+
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user) return res.status(401).json({ error: 'Non authentifié' });

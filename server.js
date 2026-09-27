@@ -24,7 +24,7 @@ import reservationRoutes from './routes/reservations.js';
 import programmeRoutes from './routes/programme.js';
 import notificationRoutes from './routes/notifications.js';
 import { auditMiddleware, getAuditLogs } from './middleware/audit.js';
-import { authenticate } from './middleware/auth.js';
+import { authenticate, superOnly } from './middleware/auth.js';
 
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
@@ -64,7 +64,8 @@ app.use('/api/reservations', reservationRoutes);
 app.use('/api/programmes', programmeRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-app.get('/api/audit-logs', authenticate, getAuditLogs);
+// Journal d'audit : réservé au super admin
+app.get('/api/audit-logs', authenticate, superOnly, getAuditLogs);
 
 // Health
 app.get('/api/health', async (req,res)=>{

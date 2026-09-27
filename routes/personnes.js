@@ -1,11 +1,11 @@
 import express from 'express';
 import pool from '../config/db.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, requireRead, requireWrite } from '../middleware/auth.js';
 import upload from '../middleware/upload.js';
 const router = express.Router();
 
 // Get by event
-router.get('/event/:eventId', async (req,res)=>{
+router.get('/event/:eventId', authenticate, requireRead('personnes','reservations','billets','dashboard'), async (req,res)=>{
   const { type, search } = req.query;
   let q = `SELECT p.*, w.nom as wilaya_nom, e.titre as event_titre,
            ex.a_paye, ex.montant_paye, ex.numero_stand
@@ -22,13 +22,13 @@ router.get('/event/:eventId', async (req,res)=>{
   res.json(rows);
 });
 
-router.get('/:id', async (req,res)=>{
+router.get('/:id', authenticate, requireRead('personnes','reservations','billets','dashboard'), async (req,res)=>{
   const [rows]= await pool.query('SELECT * FROM personnes WHERE id=?',[req.params.id]);
   if(!rows.length) return res.status(404).json({error:'Non trouvé'});
   res.json(rows[0]);
 });
 
-router.post('/', authenticate, upload.single('fichier'), async (req,res)=>{
+router.post('/', authenticate, requireWrite('personnes'), upload.single('fichier'), async (req,res)=>{
   const { event_id, type, type_custom, nom, prenom, email, telephone, entreprise, poste, pays, wilaya_id, notes } = req.body;
   if(!event_id||!type||!nom||!prenom) return res.status(400).json({error:'Champs requis manquants'});
   const fichier_path = req.file ? '/'+req.file.path : null;
@@ -39,7 +39,7 @@ router.post('/', authenticate, upload.single('fichier'), async (req,res)=>{
   res.json({ id: result.insertId });
 });
 
-router.put('/:id', authenticate, upload.single('fichier'), async (req,res)=>{
+router.put('/:id', authenticate, requireWrite('personnes'), upload.single('fichier'), async (req,res)=>{
   const { type, type_custom, nom, prenom, email, telephone, entreprise, poste, pays, wilaya_id, notes } = req.body;
   const fichier_path = req.file ? '/'+req.file.path : null;
   if (fichier_path) {
@@ -56,7 +56,7 @@ router.put('/:id', authenticate, upload.single('fichier'), async (req,res)=>{
   res.json({ message:'ok' });
 });
 
-router.delete('/:id', authenticate, async (req,res)=>{
+router.delete('/:id', authenticate, requireWrite('personnes'), async (req,res)=>{
   await pool.query('DELETE FROM personnes WHERE id=?',[req.params.id]);
   res.json({ message:'supprimé' });
 });
