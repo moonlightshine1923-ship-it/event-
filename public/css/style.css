@@ -616,19 +616,30 @@ body {
 /* ----------  Stands grid  ---------- */
 .stand-grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  /* Colonnes adaptatives : le plan remplit le cadre sans jamais déborder */
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
   gap: 12px;
   background: var(--surface-2);
   padding: 20px;
   border-radius: 14px;
   border: 1px solid var(--line-2);
+  max-width: 100%;
 }
+/* Page Stands & Plan : plus d'espace, cases plus grandes */
+.stand-grid-lg {
+  grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+  gap: 14px;
+  padding: 24px;
+}
+.stand-grid > .w-100 { grid-column: 1 / -1; }
 .stand-box {
   border-radius: 12px;
   padding: 12px 10px;
   text-align: center;
   font-size: .72rem;
   min-height: 86px;
+  min-width: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -636,6 +647,14 @@ body {
   cursor: pointer;
   transition: all .18s ease;
   border: 1.5px solid transparent;
+}
+/* Textes tronqués avec ellipse : rien ne déborde de la case */
+.stand-box strong, .stand-box small {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .stand-box strong { font-size: .86rem; font-family: var(--font-display); font-weight: 800; }
 .stand-box small { opacity: .85; }

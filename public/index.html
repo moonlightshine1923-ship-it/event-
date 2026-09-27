@@ -8,7 +8,7 @@
 <link href="vendor/fonts-gf.css" rel="stylesheet">
 <link href="vendor/bootstrap.min.css" rel="stylesheet">
 <link href="vendor/bootstrap-icons.css" rel="stylesheet">
-<link href="css/style.css?v=10" rel="stylesheet">
+<link href="css/style.css?v=11" rel="stylesheet">
 </head>
 <body>
 
@@ -206,7 +206,7 @@
 
           <!-- Main grid -->
           <div class="row g-3">
-            <div class="col-lg-7">
+            <div class="col-lg-6">
               <div class="card mb-3">
                 <div class="card-header"><span><i class="bi bi-wallet2 me-1"></i> Bilan Financier</span><span class="dash-header-note">Global</span></div>
                 <div class="card-body">
@@ -238,7 +238,7 @@
               </div>
             </div>
 
-            <div class="col-lg-5">
+            <div class="col-lg-6">
               <div class="card mb-3">
                 <div class="card-header"><span><i class="bi bi-grid-3x3 me-1"></i> Plan des Stands</span><span id="standsOccBadge" class="dash-header-note">—</span></div>
                 <div class="card-body">
@@ -308,7 +308,7 @@
             <button class="btn btn-sm btn-outline-primary" onclick="generateStands()">Générer Plan Auto</button>
             <button class="btn btn-sm btn-outline-danger" onclick="if(confirm('Supprimer tous stands?')) apiFetch('/stands/event/'+currentEventId+'/all',{method:'DELETE'}).then(()=>loadStandsPlan())">Vider</button>
           </div>
-        </div><div class="card-body"><div id="standsLegend"></div><div id="standsGrid" class="stand-grid mt-3"></div></div></div>
+        </div><div class="card-body"><div id="standsLegendFull"></div><div id="standsGridFull" class="stand-grid stand-grid-lg mt-3"></div></div></div>
       </div>
 
       <!-- EMPLOYES -->

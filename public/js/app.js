@@ -434,13 +434,10 @@ async function loadStandsPlan(){
   if(!currentEventId) return;
   try{
     const stands = await apiFetch(`/stands/event/${currentEventId}`);
-    const grid = $('#standsGrid');
-    if(!grid) return;
-    if(!stands.length){
-      grid.innerHTML='<div class="p-4 text-center text-muted">Aucun stand. Générez un plan automatique.</div>';
-      return;
-    }
-    grid.innerHTML = stands.map(s=>`
+    const grids = [$('#standsGrid'), $('#standsGridFull')].filter(Boolean);
+    if(!grids.length) return;
+    const emptyMsg = '<div class="p-4 text-center text-muted w-100">Aucun stand. Générez un plan automatique.</div>';
+    const boxesHtml = stands.map(s=>`
       <div class="stand-box ${s.statut}" title="${s.numero} - ${s.taille||''} - ${s.entreprise||''}">
         <strong>${s.numero}</strong>
         <small>${s.statut}</small>
@@ -448,14 +445,16 @@ async function loadStandsPlan(){
         ${s.entreprise?`<small>${s.entreprise}</small>`:''}
       </div>
     `).join('');
+    grids.forEach(g=>{ g.innerHTML = stands.length ? boxesHtml : emptyMsg; });
     const cnt = (st)=>stands.filter(s=>s.statut===st).length;
-    $('#standsLegend').innerHTML = `
+    const legendHtml = `
       <span class="stand-legend-chip"><span class="dot" style="background:#fff;border:1px solid #e6ecf5"></span> Libres <b>${cnt('libre')}</b></span>
       <span class="stand-legend-chip"><span class="dot" style="background:#fdf1e0"></span> Réservés <b>${cnt('reserve')}</b></span>
       <span class="stand-legend-chip"><span class="dot" style="background:#e7f8ef"></span> Occupés <b>${cnt('occupe')}</b></span>
       <span class="stand-legend-chip"><span class="dot" style="background:#eef0f4"></span> Indisponibles <b>${cnt('indisponible')}</b></span>
       <span class="stand-legend-chip ms-auto">Total <b>${stands.length}</b></span>
     `;
+    [$('#standsLegend'), $('#standsLegendFull')].forEach(l=>{ if(l) l.innerHTML = legendHtml; });
   }catch{}
 }
 
