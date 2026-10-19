@@ -64,8 +64,8 @@ function guardApi(url, method){
   else if(/^\/notifications/.test(url)) keys = ['dashboard'];
   else if(/^\/events/.test(url)) { if(isWrite) keys = ['events']; else readOpen = true; }
   else return; // rubriques, wilayas, auth… : données de navigation ouvertes
-  if(isWrite){ if(!has(...keys)) throw new Error('Rubrique non autorisée'); }
-  else { if(!has(...keys, 'dashboard')) throw new Error('Rubrique non autorisée'); }
+  if(isWrite){ if(keys && !has(...keys)) throw new Error('Rubrique non autorisée'); }
+  else { if(keys && !has(...keys, 'dashboard')) throw new Error('Rubrique non autorisée'); }
 }
 
 async function apiFetch(url, opts={}){
@@ -91,6 +91,21 @@ function toast(msg, type='success'){
   el.innerHTML=`<div class="d-flex"><div class="toast-body">${msg}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
   c.appendChild(el);
   setTimeout(()=>el.remove(),4000);
+}
+
+// Détecte une installation vierge : base inaccessible ou aucun utilisateur
+async function checkSetupStatus(){
+  try{
+    const s = await fetch(API+'/auth/setup-status').then(r=>r.json());
+    if(s.needSetup) $('#setupBox')?.classList.remove('d-none');
+    if(s.ok === false && s.dbError){
+      const box = $('#dbErrorBox');
+      if(box){
+        box.classList.remove('d-none');
+        $('#dbErrorMsg').innerHTML = '<b>Base de données inaccessible</b> : '+s.dbError+'<br>1) Copiez <code>.env.example</code> vers <code>.env</code> et renseignez MySQL · 2) <code>npm install</code> · 3) <code>npm run init-db</code> · 4) rechargez.';
+      }
+    }
+  }catch{}
 }
 
 // Auth
@@ -287,8 +302,15 @@ function selectEvent(id){
   // synchronise les deux sélecteurs (sidebar + topbar)
   const sel = $('#eventSelector'); if(sel) sel.value = String(id);
   const tsel = $('#topbarEventSelector'); if(tsel) tsel.value = String(id);
-  refreshDashboard();
-  showSection('dashboard');
+  const allowed = allowedSections();
+  if(allowed.has('dashboard')){
+    refreshDashboard();
+    showSection('dashboard');
+  } else {
+    // reste sur la rubrique courante (ou la première autorisée) et recharge ses données
+    const cur = document.querySelector('.content-section:not(.d-none)')?.id.replace('section-','');
+    showSection(cur && allowed.has(cur) ? cur : (ALL_SECTIONS.find(k=>allowed.has(k)) || 'events'));
+  }
   toast('Événement sélectionné');
 }
 
@@ -907,6 +929,9 @@ function showSection(id){
   // Mode accueil : sidebar masquée tant qu'aucun événement n'est entré
   const wrapper = $('#appWrapper');
   if(wrapper) wrapper.classList.toggle('home-mode', id==='events');
+  if(!['events','users','audit'].includes(id) && !currentEventId){
+    toast('Sélectionnez d\'abord un événement (barre du haut) pour ajouter des données','warning');
+  }
   $$('.content-section').forEach(s=>s.classList.add('d-none'));
   $('#section-'+id).classList.remove('d-none');
   $$('.sidebar .nav-link').forEach(l=>l.classList.remove('active'));
@@ -1229,6 +1254,18 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
   if(token) initApp();
+  checkSetupStatus();
+  $('#setupForm')?.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    try{
+      const res = await fetch(API+'/auth/first-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(fd))}).then(r=>r.json());
+      if(res.error) throw new Error(res.error);
+      toast('Super admin créé ✔ Vous pouvez vous connecter');
+      $('#setupBox').classList.add('d-none');
+      e.target.reset();
+    }catch(err){ toast(err.message,'danger'); }
+  });
   $('#loginForm')?.addEventListener('submit',(e)=>{ e.preventDefault(); login(); });
   $('#togglePwdIcon')?.closest('.toggle-pwd')?.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); togglePassword(); }});
   $('#eventSelector')?.addEventListener('change',(e)=>{ if(e.target.value){ selectEvent(e.target.value); }});

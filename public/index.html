@@ -24,6 +24,18 @@
       <div class="login-sub">Plateforme de gestion d'événements · Algérie</div>
     </div>
     <div class="login-body">
+      <div id="dbErrorBox" class="d-none mb-3">
+        <div class="alert alert-danger py-2 mb-0" style="font-size:.78rem" id="dbErrorMsg"></div>
+      </div>
+      <div id="setupBox" class="d-none mb-3">
+        <div class="alert alert-info py-2 mb-2" style="font-size:.78rem"><i class="bi bi-magic me-1"></i><b>Première installation</b> : créez le compte super admin.</div>
+        <form id="setupForm" class="row g-2">
+          <div class="col-6"><input name="username" class="form-control form-control-sm" placeholder="Username" required></div>
+          <div class="col-6"><input name="email" type="email" class="form-control form-control-sm" placeholder="Email" required></div>
+          <div class="col-9"><input name="password" type="password" class="form-control form-control-sm" placeholder="Mot de passe" required minlength="4"></div>
+          <div class="col-3"><button class="btn btn-sm btn-primary w-100" type="submit">Créer</button></div>
+        </form>
+      </div>
       <form id="loginForm">
         <div class="mb-3">
           <label class="form-label">Email ou Username</label>
@@ -529,7 +541,7 @@
 </div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary" id="userSubmitBtn">Créer Utilisateur</button></div></form></div></div></div>
 
 <script src="vendor/bootstrap.bundle.min.js"></script>
-<script src="js/app.js?v=9"></script>
+<script src="js/app.js?v=11"></script>
 <script>
 // Flèche latérale : ouvrir / fermer le menu (petits écrans) — 100% autonome
 (function(){
@@ -585,5 +597,5 @@ async function saveRestoConfig(e){
   try{ await apiFetch(`/restauration/event/${currentEventId}/config`,{method:'PUT', body:payload}); toast('Config sauvée'); loadRestauration(); }catch(err){ toast(err.message,'danger'); }
 }
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a353fbe939a3b8e3',t:'MTc4ODQzMDQyOQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3e1296149f63447',t:'MTc4OTkxMDc4NA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a353fbe939a3b8e3',t:'MTc4ODQzMDQyOQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3e1296149f63447',t:'MTc4OTkxMDc4NA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a419d1f60ac5a4a7',t:'MTc5MDUwNDg5MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

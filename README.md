@@ -1,5 +1,28 @@
 # Event Manager Algérie - Node.js + Express 5 + MySQL
 
+## Installation locale (démarrage rapide)
+
+1. **Prérequis** : Node.js 18+ et MySQL/MariaDB en marche.
+2. `npm install`
+3. Copiez `.env.example` vers `.env` et renseignez `DB_USER`, `DB_PASSWORD`, `JWT_SECRET`.
+4. `npm run init-db` → crée la base, le schéma et les 58 wilayas.
+5. `npm start` → ouvrez `http://localhost:3000`.
+6. **Première installation** : la page de connexion affiche automatiquement un encart
+   « Première installation » pour créer le compte **super admin** (uniquement tant qu'aucun
+   utilisateur n'existe). Ensuite, connectez-vous et créez vos utilisateurs
+   (Admin / Lecture-Écriture / Lecture seule + rubriques) dans *Utilisateurs & Permissions*.
+
+En cas d'erreur 500 au login : le message affiché indique la cause (MySQL inaccessible,
+`.env` manquant, `JWT_SECRET` absent).
+
+### Rôles
+- **super_admin** : tout + journal d'audit (seul à y accéder) + suppression d'utilisateurs
+- **admin** : toutes les rubriques, sans journal d'audit
+- **editor (Lecture/Écriture)** : ajoute/modifie/supprime dans les rubriques cochées uniquement
+- **viewer (Lecture seule)** : consulte les rubriques cochées, aucune écriture
+
+---
+
 Application complète de gestion d'événements avec toutes les rubriques demandées:
 
 ### Fonctionnalités implémentées
@@ -72,16 +95,20 @@ Application complète de gestion d'événements avec toutes les rubriques demand
 - Affiché chronologique
 
 **13. Users & Accès**
-- Roles : super_admin, admin, manager, finance, viewer
-- Permissions JSON extensible (ex: {"events":true,"finance":true})
-- JWT auth, Middleware authorize
-- Premier super admin via `/auth/first-admin` si 0 users
+- Rôles : `super_admin` (tout + journal d'audit), `admin` (toutes les rubriques, sans audit),
+  `editor` = Lecture/Écriture et `viewer` = Lecture seule, limités aux rubriques cochées
+  (anciens rôles manager/finance supprimés — migration automatique au démarrage)
+- Permissions JSON par rubrique (ex : `{"stands":true,"personnes":true}`) = sections affichées
+  dans la session de l'utilisateur ; lecture seule = aucun ajout/modification/suppression
+- Application côté serveur sur toutes les routes : `requireRead` / `requireWrite` / `superOnly`
+- JWT auth ; premier super admin via `/auth/first-admin` (formulaire affiché automatiquement
+  sur la page de connexion tant qu'aucun utilisateur n'existe)
 
 **14. Journal Audit**
 - Table audit_logs : user_id, action (METHOD path), table_name, record_id, old/new values, IP, user_agent
 - Middleware audit log sur POST/PUT/DELETE
-- Endpoint `/audit-logs?limit=100`
-- Section Audit dans frontend
+- Endpoint `/audit-logs?limit=100` — **réservé au super admin** (403 pour admin et les autres)
+- Section Audit dans frontend (visible uniquement par le super admin)
 
 **15. Autres**
 - Notifications globales pour alertes hôtel etc
@@ -100,10 +127,11 @@ cp .env.example .env
 Créez DB MySQL et initialisez:
 
 ```bash
-# Option 1 via API après lancement
-npm run dev
-# POST http://localhost:3000/api/init-db
-# puis POST http://localhost:3000/api/auth/first-admin {"username":"admin","email":"admin@dz","password":"admin123"}
+# Option 1 (recommandée) : script automatique
+npm run init-db
+# → crée la base, importe le schéma et seed les 58 wilayas
+# Le premier super admin se crée ensuite depuis la page de connexion
+# (encart « Première installation ») ou via POST /api/auth/first-admin
 
 # Option 2 manuel
 mysql -u root -p < sql/schema.sql
