@@ -97,6 +97,7 @@ CREATE TABLE IF NOT EXISTS personnes (
   wilaya_id INT,
   notes TEXT,
   fichier_path VARCHAR(500),
+  photo_path VARCHAR(500),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
   FOREIGN KEY (wilaya_id) REFERENCES wilayas(id) ON DELETE SET NULL
@@ -150,10 +151,14 @@ CREATE TABLE IF NOT EXISTS stands (
 CREATE TABLE IF NOT EXISTS employes (
   id INT AUTO_INCREMENT PRIMARY KEY,
   event_id INT NOT NULL,
+  nin VARCHAR(18),
   nom VARCHAR(150) NOT NULL,
   prenom VARCHAR(150) NOT NULL,
   poste VARCHAR(150) NOT NULL,
   poste_custom VARCHAR(150),
+  categorie_id INT,
+  responsable VARCHAR(255),
+  photo_path VARCHAR(500),
   telephone VARCHAR(50),
   email VARCHAR(255),
   tache TEXT,
@@ -164,6 +169,7 @@ CREATE TABLE IF NOT EXISTS employes (
   nb_jours INT DEFAULT 1,
   salaire_total DECIMAL(12,2) GENERATED ALWAYS AS (salaire_jour * nb_jours) STORED,
   statut_paiement ENUM('non_paye','paye','partiel') DEFAULT 'non_paye',
+  notes TEXT,
   fichier_path VARCHAR(500),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
@@ -255,7 +261,13 @@ CREATE TABLE IF NOT EXISTS conventions (
 CREATE TABLE IF NOT EXISTS billets_avion (
   id INT AUTO_INCREMENT PRIMARY KEY,
   event_id INT NOT NULL,
-  personne_id INT NOT NULL,
+  personne_id INT NULL,
+  passager_nom VARCHAR(150) NULL,
+  passager_prenom VARCHAR(150) NULL,
+  date_arrivee DATETIME NULL,
+  date_arrivee_retour DATETIME NULL,
+  aeroport_depart_retour VARCHAR(150) NULL,
+  aeroport_arrivee_retour VARCHAR(150) NULL,
   compagnie VARCHAR(150),
   num_vol_aller VARCHAR(100),
   num_vol_retour VARCHAR(100),
@@ -375,3 +387,92 @@ CREATE INDEX idx_personnes_event ON personnes(event_id);
 CREATE INDEX idx_exposants_event ON exposants(event_id);
 CREATE INDEX idx_stands_event ON stands(event_id);
 CREATE INDEX idx_hotel_wilaya ON hotels(wilaya_id);
+
+-- 18. EQUIPE : catégories et profils (la table employes est conservée pour compatibilité)
+CREATE TABLE IF NOT EXISTS equipe_categories (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  event_id INT NOT NULL,
+  nom VARCHAR(150) NOT NULL,
+  description TEXT,
+  couleur VARCHAR(20) DEFAULT '#2f6bff',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_equipe_category (event_id, nom),
+  FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+);
+
+-- 19. INTERVENANTS
+CREATE TABLE IF NOT EXISTS intervenants (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  event_id INT NOT NULL,
+  nom VARCHAR(150) NOT NULL,
+  prenom VARCHAR(150) NOT NULL,
+  poste VARCHAR(150),
+  telephone VARCHAR(50),
+  email VARCHAR(255),
+  photo_path VARCHAR(500),
+  engagement_description TEXT,
+  engagement_file_path VARCHAR(500),
+  presentation_file_path VARCHAR(500),
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_intervenant (event_id, nom, prenom),
+  FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+);
+
+-- 20. ARCHIVES AUTORISATIONS
+CREATE TABLE IF NOT EXISTS autorisations (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  event_id INT NOT NULL,
+  titre VARCHAR(255) NOT NULL,
+  type VARCHAR(100) DEFAULT 'autre',
+  organisme VARCHAR(255),
+  date_demande DATE,
+  date_obtention DATE,
+  statut VARCHAR(50) DEFAULT 'a_demander',
+  description TEXT,
+  notes TEXT,
+  file_path VARCHAR(500),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+);
+
+-- 21. ARCHIVES DOCUMENTS
+CREATE TABLE IF NOT EXISTS event_documents (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  event_id INT NOT NULL,
+  titre VARCHAR(255) NOT NULL,
+  type VARCHAR(100) DEFAULT 'autre',
+  date_document DATE,
+  description TEXT,
+  notes TEXT,
+  file_path VARCHAR(500),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+);
+
+-- 22. TRANSACTIONS FINANCIERES MANUELLES
+CREATE TABLE IF NOT EXISTS finance_transactions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  event_id INT NOT NULL,
+  type ENUM('entrant','sortant') NOT NULL,
+  categorie VARCHAR(100) DEFAULT 'autre',
+  libelle VARCHAR(255) NOT NULL,
+  montant DECIMAL(14,2) NOT NULL DEFAULT 0,
+  date_transaction DATE,
+  notes TEXT,
+  created_by INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Restauration simplifiée : les anciennes tables sont conservées.
+CREATE TABLE IF NOT EXISTS restauration_simple (
+  event_id INT PRIMARY KEY, menu TEXT, achats TEXT, montant DECIMAL(14,2) NOT NULL DEFAULT 0,
+  FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS restauration_factures (
+  id INT AUTO_INCREMENT PRIMARY KEY, event_id INT NOT NULL, nom VARCHAR(255), file_path VARCHAR(500) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+);

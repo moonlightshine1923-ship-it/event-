@@ -1,0 +1,46 @@
+/* v26 — restrained colour accents and consistent, accessible forms. */
+:root{--ea-teal:#148d87;--ea-indigo:#5264c7;--ea-stroke:#e1e8f2;--ea-soft:#f4f7fc}
+.content-section>.card,.content-section>.row>.col-md-4>.card{border-color:var(--ea-stroke);box-shadow:0 5px 22px rgba(23,48,83,.035)}
+#section-reservations .card-header{border-left:4px solid var(--ea-teal)}
+#section-programmes .card-header,#section-intervenants .card-header{border-left:4px solid var(--ea-indigo)}
+#section-sponsors .card-header{border-left:4px solid #b38b39}
+#section-autorisations .card-header,#section-conventions .card-header{border-left:4px solid #4a91ba}
+.ea-polished .modal-content{border:1px solid var(--ea-stroke);border-radius:18px;overflow:visible;box-shadow:0 24px 80px rgba(20,40,74,.18)}
+.ea-polished .modal-header{background:linear-gradient(110deg,#f0f5ff,#f2faf8);border-bottom:1px solid var(--ea-stroke);padding:20px 24px;border-radius:18px 18px 0 0}
+.ea-polished .modal-title{font-size:1.08rem;font-weight:650;color:#203655;line-height:1.5}
+.ea-polished .modal-body{padding:24px;--bs-gutter-x:1.15rem;--bs-gutter-y:1rem}
+.ea-polished .modal-body.row{margin:0}
+.ea-polished .modal-body>.col-6,.ea-polished .modal-body>.col-12,.ea-polished .modal-body>[class*=col-md-]{align-content:start;min-width:0}
+.ea-polished .form-label{display:block;font-size:.77rem;font-weight:600;line-height:1.45;color:#4b5f7b;margin:0 0 7px;min-height:1.1rem;letter-spacing:.01em}
+.ea-polished .ea-required:after{content:' *';color:#b44757}
+.ea-polished .form-control,.ea-polished .form-select{min-height:44px;border:1px solid #d8e1ed;border-radius:9px;background-color:#fff;padding:10px 12px;color:#233853;font-size:.86rem;box-shadow:none;line-height:1.5;width:100%;max-width:100%}
+.ea-polished .form-control::placeholder{color:#8a99ac;font-weight:400}
+.ea-polished .form-control:focus,.ea-polished .form-select:focus{border-color:#7799d8;box-shadow:0 0 0 3px #e8effb}
+.ea-polished textarea.form-control{min-height:90px;resize:vertical}
+.ea-polished input[type=file].form-control{padding:8px;overflow:hidden}
+.ea-polished input[type=file]::file-selector-button{border-radius:6px;background:#edf3fd;color:#365783;font-size:.78rem;margin:-3px 10px -3px -3px;padding:8px}
+.ea-polished .modal-footer{background:#fafbfd;border-top:1px solid var(--ea-stroke);padding:16px 24px;border-radius:0 0 18px 18px;gap:8px}
+.ea-polished .modal-footer .btn{border-radius:9px;min-height:40px;padding:8px 18px}
+.ea-polished .modal-footer .btn-primary{box-shadow:0 3px 8px rgba(37,99,235,.12)}
+.team-category-frame{position:relative;border-radius:15px;height:100%}
+.team-category-frame .team-category-card{height:100%;min-height:175px;padding-right:48px;width:100%}
+.team-category-frame .category-delete{position:absolute;right:12px;top:12px;width:30px;height:30px;min-width:30px;padding:0!important;display:inline-flex;align-items:center;justify-content:center;background:#fff5f5;color:#ba5260;border:1px solid #f0dce0;border-radius:7px;box-shadow:none;z-index:1;transition:background .15s,color .15s}
+.team-category-frame .category-delete:hover{background:#b94253;color:#fff;border-color:#b94253}
+.team-category-frame .category-delete:focus-visible{outline:3px solid #f0b4bd;outline-offset:2px}
+.occupant-search-wrap{position:relative}
+.occupant-suggestions{position:absolute;top:calc(100% + 6px);left:0;right:0;max-height:250px;overflow:auto;z-index:1080;background:#fff;border:1px solid #d8e2ef;border-radius:11px;box-shadow:0 12px 32px #1f34551a;padding:5px}
+.occupant-option{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;width:100%;padding:11px 12px;background:transparent;border:0;border-radius:7px;color:#263d5b;font-size:.86rem}
+.occupant-option small{font-size:.71rem;background:#edf3fb;color:#577199;border-radius:5px;padding:3px 7px;white-space:nowrap}
+.occupant-option:hover,.occupant-option.active{background:#eef5ff}
+.occupant-option:focus-visible{outline:2px solid #7496d1}
+.occupant-empty{padding:13px;color:#78879b;font-size:.82rem}
+.occupant-chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 6px}
+.occupant-chip{display:inline-flex;align-items:center;gap:10px;background:#ebf6f4;border:1px solid #d2eae4;color:#27665e;font-size:.79rem;border-radius:7px;padding:7px 10px}
+.occupant-chip button{display:inline-flex;align-items:center;justify-content:center;border:0;background:transparent;color:#39736c;font-size:19px;width:21px;height:21px;line-height:1;border-radius:4px}
+.occupant-chip button:hover{background:#cfe9e3}
+#reservationOccupantStatus{font-size:.74rem;display:block;margin-top:4px}
+@media(max-width:575px){.ea-polished .modal-body{padding:17px;--bs-gutter-x:.85rem}.ea-polished .modal-header,.ea-polished .modal-footer{padding:16px 17px}.ea-polished .modal-body>.col-6,.ea-polished .modal-body>.col-4{width:100%}.team-category-frame .team-category-card{padding:22px 38px 20px 13px}.team-category-frame .category-delete{right:8px;top:8px;width:28px;height:28px;min-width:28px}.occupant-option{gap:5px}}
+
+.ea-polished .modal-content{background:#fff}
+.ea-checkbox-cell{display:flex;align-items:center;justify-content:flex-start;padding-top:28px}
+@media(max-width:575px){.ea-checkbox-cell{padding-top:0}}

@@ -36,8 +36,11 @@ router.post('/', authenticate, requireWrite('events'), async (req,res)=>{
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?, ?)`,
     [rubrique_id||null,titre,theme,description,emplacement,wilaya_id||null,date_debut||null,date_fin||null,heure_debut||null,heure_fin||null,budget_initial||0,nb_personnes_prevu||0,nb_invites||0,nb_exposants_prevu||0,nb_vip_prevu||0,statut||'brouillon',req.user.id]
   );
-  // create restauration_config placeholder
+  // create placeholders for the new event
   await pool.query('INSERT IGNORE INTO restauration_configs (event_id) VALUES (?)',[result.insertId]);
+  for (const nom of ['Hôtesses','Agents de sécurité','Serveurs','Accueil','Technique','Nettoyage','Transport','Autre']) {
+    await pool.query('INSERT IGNORE INTO equipe_categories (event_id,nom) VALUES (?,?)',[result.insertId,nom]);
+  }
   res.json({ id: result.insertId });
 });
 
@@ -78,13 +81,12 @@ router.get('/:id/finance', authenticate, requireRead('dashboard','events'), asyn
   const [[sortantsHotels]] = await pool.query('SELECT COALESCE(SUM(prix_nuit * nb_nuits),0) as total FROM reservations_hotel WHERE event_id=?',[eventId]);
 
   // restauration total = somme prix_par_personne * nb_personnes affectées approx
-  const [[sortantsRestauration]] = await pool.query(`
-    SELECT COALESCE(SUM(m.prix_par_personne * ra.nb_personnes),0) as total
-    FROM restauration_affectations ra
-    JOIN restauration_menus m ON m.id=ra.menu_id
-    WHERE ra.event_id=?`, [eventId]);
+  const [[sortantsRestauration]] = await pool.query(`SELECT COALESCE((SELECT montant FROM restauration_simple WHERE event_id=?),
+ (SELECT COALESCE(SUM(m.prix_par_personne*ra.nb_personnes),0) FROM restauration_affectations ra JOIN restauration_menus m ON m.id=ra.menu_id WHERE ra.event_id=?)) AS total`, [eventId,eventId]);
+  const [[manualEntrants]] = await pool.query('SELECT COALESCE(SUM(montant),0) as total FROM finance_transactions WHERE event_id=? AND type="entrant"',[eventId]);
+  const [[manualSortants]] = await pool.query('SELECT COALESCE(SUM(montant),0) as total FROM finance_transactions WHERE event_id=? AND type="sortant"',[eventId]);
 
-  const totalSortants = parseFloat(sortantsEmployes.total||0) + parseFloat(sortantsConventions.total||0) + parseFloat(sortantsBillets.total||0) + parseFloat(sortantsHotels.total||0) + parseFloat(sortantsRestauration.total||0);
+  const totalSortants = parseFloat(sortantsEmployes.total||0) + parseFloat(sortantsConventions.total||0) + parseFloat(sortantsBillets.total||0) + parseFloat(sortantsHotels.total||0) + parseFloat(sortantsRestauration.total||0) + parseFloat(manualSortants.total||0);
 
   res.json({
     event,
@@ -92,7 +94,8 @@ router.get('/:id/finance', authenticate, requireRead('dashboard','events'), asyn
       budget_initial: parseFloat(event.budget_initial||0),
       exposants: parseFloat(entrantsExposants.total||0),
       sponsors: parseFloat(entrantsSponsors.total||0),
-      total: totalEntrants
+      manuel: parseFloat(manualEntrants.total||0),
+      total: totalEntrants + parseFloat(manualEntrants.total||0)
     },
     sortants: {
       employes: parseFloat(sortantsEmployes.total||0),
@@ -100,9 +103,10 @@ router.get('/:id/finance', authenticate, requireRead('dashboard','events'), asyn
       billets: parseFloat(sortantsBillets.total||0),
       hotels: parseFloat(sortantsHotels.total||0),
       restauration: parseFloat(sortantsRestauration.total||0),
+      manuel: parseFloat(manualSortants.total||0),
       total: totalSortants
     },
-    balance: totalEntrants - totalSortants
+    balance: totalEntrants + parseFloat(manualEntrants.total||0) - totalSortants
   });
 });
 

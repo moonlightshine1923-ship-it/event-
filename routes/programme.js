@@ -16,9 +16,16 @@ router.get('/:id', authenticate, requireRead('programmes','dashboard'), async (r
 });
 
 router.post('/', authenticate, requireWrite('programmes'), upload.single('presentation'), async (req,res)=>{
+  let selectedIntervenant=null;
+  if(req.body.intervenant_id){
+    const [[speaker]]=await pool.query('SELECT * FROM intervenants WHERE id=? AND event_id=?',[req.body.intervenant_id,req.body.event_id]);
+    if(!speaker)return res.status(400).json({error:'Intervenant introuvable dans cet événement'});
+    selectedIntervenant=speaker;
+    Object.assign(req.body,{intervenant_nom:speaker.nom,intervenant_prenom:speaker.prenom,intervenant_poste:speaker.poste||'',intervenant_email:speaker.email||''});
+  }
   const { event_id, jour, heure_debut, heure_fin, titre, description, type, intervenant_nom, intervenant_prenom, intervenant_poste, intervenant_is_vip, intervenant_email, theme, salle, ordre } = req.body;
   if(!event_id||!jour||!heure_debut||!heure_fin||!titre) return res.status(400).json({error:'Champs requis'});
-  const presentation_file = req.file ? req.file.path : null;
+  const presentation_file = req.file ? req.file.path : (selectedIntervenant?.presentation_file_path?.replace(/^\//,'')||null);
   let presentation_type=null;
   if(req.file){
     const ext = req.file.originalname.split('.').pop().toLowerCase();

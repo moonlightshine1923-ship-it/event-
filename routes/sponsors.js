@@ -17,20 +17,22 @@ router.get('/:id', authenticate, requireRead('sponsors','dashboard'), async (req
 
 router.post('/', authenticate, requireWrite('sponsors'), upload.single('logo'), async (req,res)=>{
   const { event_id, nom, type, montant, entreprise, contact_nom, contact_email, contact_tel, avantages, statut_paiement } = req.body;
-  if(!event_id||!nom||!type) return res.status(400).json({error:'Champs requis'});
+  if(!event_id||!nom) return res.status(400).json({error:'Champs requis'});
   const logo_path = req.file ? req.file.path : null;
   const [result]= await pool.query(
     `INSERT INTO sponsors (event_id,nom,type,montant,entreprise,contact_nom,contact_email,contact_tel,logo_path,avantages,statut_paiement)
      VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-    [event_id,nom,type,montant||0,entreprise,contact_nom,contact_email,contact_tel,logo_path,avantages,statut_paiement||'en_attente']
+    [event_id,nom,type||'autre',montant||0,entreprise,contact_nom,contact_email,contact_tel,logo_path,avantages,statut_paiement||'en_attente']
   );
   res.json({ id: result.insertId });
 });
 
 router.put('/:id', authenticate, requireWrite('sponsors'), upload.single('logo'), async (req,res)=>{
   const { nom, type, montant, entreprise, contact_nom, contact_email, contact_tel, avantages, statut_paiement } = req.body;
+  const [[old]]=await pool.query('SELECT type,statut_paiement FROM sponsors WHERE id=?',[req.params.id]);
+  if(!old)return res.status(404).json({error:'Sponsor introuvable'});
   let q='UPDATE sponsors SET nom=?,type=?,montant=?,entreprise=?,contact_nom=?,contact_email=?,contact_tel=?,avantages=?,statut_paiement=?';
-  const params=[nom,type,montant,entreprise,contact_nom,contact_email,contact_tel,avantages,statut_paiement];
+  const params=[nom,type??old.type,montant,entreprise,contact_nom,contact_email,contact_tel,avantages,statut_paiement??old.statut_paiement];
   if(req.file){ q+=', logo_path=?'; params.push(req.file.path); }
   q+=' WHERE id=?'; params.push(req.params.id);
   await pool.query(q, params);

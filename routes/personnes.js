@@ -28,32 +28,35 @@ router.get('/:id', authenticate, requireRead('personnes','reservations','billets
   res.json(rows[0]);
 });
 
-router.post('/', authenticate, requireWrite('personnes'), upload.single('fichier'), async (req,res)=>{
+const personneFiles = upload.fields([{ name: 'fichier', maxCount: 1 }, { name: 'photo', maxCount: 1 }]);
+
+router.post('/', authenticate, requireWrite('personnes'), personneFiles, async (req,res)=>{
   const { event_id, type, type_custom, nom, prenom, email, telephone, entreprise, poste, pays, wilaya_id, notes } = req.body;
   if(!event_id||!type||!nom||!prenom) return res.status(400).json({error:'Champs requis manquants'});
-  const fichier_path = req.file ? '/'+req.file.path : null;
+  const fichier = req.files?.fichier?.[0];
+  const photo = req.files?.photo?.[0];
+  const fichier_path = fichier ? '/'+fichier.path : null;
+  const photo_path = photo ? '/'+photo.path : null;
   const [result]= await pool.query(
-    `INSERT INTO personnes (event_id,type,type_custom,nom,prenom,email,telephone,entreprise,poste,pays,wilaya_id,notes,fichier_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [event_id,type,type_custom||null,nom,prenom,email||null,telephone||null,entreprise||null,poste||null,pays||'Algérie',wilaya_id||null,notes||null,fichier_path]
+    `INSERT INTO personnes (event_id,type,type_custom,nom,prenom,email,telephone,entreprise,poste,pays,wilaya_id,notes,fichier_path,photo_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [event_id,type,type_custom||null,nom,prenom,email||null,telephone||null,entreprise||null,poste||null,pays||'Algérie',wilaya_id||null,notes||null,fichier_path,photo_path]
   );
   res.json({ id: result.insertId });
 });
 
-router.put('/:id', authenticate, requireWrite('personnes'), upload.single('fichier'), async (req,res)=>{
-  const { type, type_custom, nom, prenom, email, telephone, entreprise, poste, pays, wilaya_id, notes } = req.body;
-  const fichier_path = req.file ? '/'+req.file.path : null;
-  if (fichier_path) {
-    await pool.query(
-      `UPDATE personnes SET type=?,type_custom=?,nom=?,prenom=?,email=?,telephone=?,entreprise=?,poste=?,pays=?,wilaya_id=?,notes=?,fichier_path=? WHERE id=?`,
-      [type,type_custom||null,nom,prenom,email,telephone,entreprise,poste,pays,wilaya_id||null,notes,fichier_path,req.params.id]
-    );
-  } else {
-    await pool.query(
-      `UPDATE personnes SET type=?,type_custom=?,nom=?,prenom=?,email=?,telephone=?,entreprise=?,poste=?,pays=?,wilaya_id=?,notes=? WHERE id=?`,
-      [type,type_custom||null,nom,prenom,email,telephone,entreprise,poste,pays,wilaya_id||null,notes,req.params.id]
-    );
-  }
-  res.json({ message:'ok' });
+router.put('/:id', authenticate, requireWrite('personnes'), personneFiles, async (req,res)=>{
+  const [[old]]=await pool.query('SELECT * FROM personnes WHERE id=?',[req.params.id]);
+  if(!old)return res.status(404).json({error:'Personne introuvable'});
+  const role=String(req.user.role||'').toLowerCase().replace(/[^a-z]/g,'');
+  const p=req.user.permissions||{};
+  if(!['superadmin','admin','administrator'].includes(role)&&!p.all&&!p.personnes&&old.type!=='exposant')return res.status(403).json({error:'Rubrique non autorisée'});
+  const data={...old,...req.body};
+  if(!data.nom||!data.prenom)return res.status(400).json({error:'Nom et prénom requis'});
+  const keys=['type','type_custom','nom','prenom','email','telephone','entreprise','poste','pays','wilaya_id','notes'];
+  const sets=keys.map(k=>k+'=?'),values=keys.map(k=>data[k]||null);
+  for(const key of ['fichier','photo']){const file=req.files?.[key]?.[0];if(file){sets.push((key==='photo'?'photo_path':'fichier_path')+'=?');values.push('/'+file.path);}}
+  values.push(req.params.id);await pool.query(`UPDATE personnes SET ${sets.join(',')} WHERE id=?`,values);
+  res.json({message:'ok'});
 });
 
 router.delete('/:id', authenticate, requireWrite('personnes'), async (req,res)=>{

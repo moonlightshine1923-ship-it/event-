@@ -49,14 +49,34 @@ router.post('/login', async (req,res)=>{
   const { email, username, password } = req.body;
   const identifier = email || username;
   if(!identifier||!password) return res.status(400).json({error:'Identifiants manquants'});
-  const [rows] = await pool.query('SELECT * FROM users WHERE email=? OR username=? LIMIT 1',[identifier,identifier]);
+  let rows;
+  try {
+    [rows] = await pool.query('SELECT * FROM users WHERE email=? OR username=? LIMIT 1',[identifier,identifier]);
+  } catch(e){
+    return res.status(500).json({ error:'Base de données inaccessible ('+e.message+'). Vérifiez MySQL + fichier .env, puis lancez: npm run init-db' });
+  }
   if(!rows.length) return res.status(401).json({error:'Utilisateur non trouvé'});
   const user = rows[0];
   if(!user.is_active) return res.status(403).json({error:'Compte désactivé'});
   const ok = await bcrypt.compare(password, user.password_hash);
   if(!ok) return res.status(401).json({error:'Mot de passe incorrect'});
-  const token = jwt.sign({ id:user.id, role:user.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN||'7d' });
+  let token;
+  try {
+    token = jwt.sign({ id:user.id, role:user.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN||'7d' });
+  } catch(e){
+    return res.status(500).json({ error:'JWT_SECRET manquant dans le fichier .env (voir .env.example)' });
+  }
   res.json({ token, user: { id:user.id, username:user.username, email:user.email, role:user.role, permissions:user.permissions }});
+});
+
+// État de l'installation : base inaccessible ? aucun utilisateur créé ?
+router.get('/setup-status', async (req,res)=>{
+  try {
+    const [c] = await pool.query('SELECT COUNT(*) as c FROM users');
+    res.json({ ok:true, needSetup: c[0].c===0 });
+  } catch(e){
+    res.json({ ok:false, dbError:e.message });
+  }
 });
 
 router.get('/me', authenticate, async (req,res)=>{

@@ -1,7 +1,29 @@
 import express from 'express';
 import pool from '../config/db.js';
 import { authenticate, requireRead, requireWrite } from '../middleware/auth.js';
+import upload from '../middleware/upload.js';
 const router = express.Router();
+
+// Simplified screen: legacy menus and assignments remain archived.
+router.get('/event/:eventId/simple', authenticate, requireRead('restauration','dashboard'), async(req,res)=>{
+ const [[row]]=await pool.query('SELECT * FROM restauration_simple WHERE event_id=?',[req.params.eventId]);
+ const [factures]=await pool.query('SELECT * FROM restauration_factures WHERE event_id=? ORDER BY id DESC',[req.params.eventId]);
+ res.json({...row,factures});
+});
+router.put('/event/:eventId/simple', authenticate, requireWrite('restauration'), async(req,res)=>{
+ const {menu,achats,montant}=req.body;
+ if(!Number.isFinite(Number(montant))||Number(montant)<0) return res.status(400).json({error:'Montant positif ou nul requis'});
+ await pool.query('INSERT INTO restauration_simple (event_id,menu,achats,montant) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE menu=VALUES(menu),achats=VALUES(achats),montant=VALUES(montant)',[req.params.eventId,menu||'',achats||'',montant]);
+ res.json({message:'ok'});
+});
+router.post('/event/:eventId/factures', authenticate, requireWrite('restauration'), upload.single('fichier'), async(req,res)=>{
+ if(!req.file) return res.status(400).json({error:'Facture requise'});
+ const [r]=await pool.query('INSERT INTO restauration_factures (event_id,nom,file_path) VALUES (?,?,?)',[req.params.eventId,req.file.originalname,'/'+req.file.path]);
+ res.json({id:r.insertId});
+});
+router.delete('/factures/:id', authenticate, requireWrite('restauration'), async(req,res)=>{
+ await pool.query('DELETE FROM restauration_factures WHERE id=?',[req.params.id]);res.json({message:'ok'});
+});
 
 // Config
 router.get('/event/:eventId/config', authenticate, requireRead('restauration','dashboard'), async (req,res)=>{

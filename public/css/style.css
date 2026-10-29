@@ -799,3 +799,15 @@ body {
   .content-area { padding: 18px 16px 32px; }
   .topbar .user-chip .chip-meta { display: none; }
 }
+
+/* Nouveaux écrans : équipe, archives, recherche globale */
+.team-category-card{width:100%;min-height:142px;border:1px solid var(--line-2);border-radius:18px;background:var(--surface);padding:18px;text-align:left;display:flex;flex-direction:column;gap:7px;box-shadow:0 7px 20px rgba(32,67,128,.06);transition:.18s;position:relative;overflow:hidden}
+.team-category-card:before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:var(--team-color,#2f6bff)}
+.team-category-card:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(32,67,128,.13);border-color:var(--team-color,#2f6bff)}
+.team-category-icon{width:40px;height:40px;border-radius:12px;background:color-mix(in srgb,var(--team-color,#2f6bff) 12%,white);color:var(--team-color,#2f6bff);display:grid;place-items:center;font-size:1.2rem}
+.team-category-name{font-weight:700;color:var(--ink)}.team-category-count{font-size:.78rem;color:var(--muted)}
+.team-category-add{border-style:dashed;--team-color:#12b886}.team-category-add .team-category-icon{background:#e7f8ef;color:#12b886}
+.avatar-sm{width:38px;height:38px;border-radius:50%;display:inline-grid;place-items:center;flex:0 0 38px;background:#e8efff;color:#2f6bff;font-weight:700;font-size:.75rem;overflow:hidden}.avatar-photo{object-fit:cover}
+.clickable-row{cursor:pointer}.clickable-row:hover{background:#f5f8ff!important}
+.searchbar-global{position:relative}.global-search-results{position:absolute;z-index:1200;top:calc(100% + 9px);left:0;right:0;min-width:310px;background:#fff;border:1px solid var(--line-2);border-radius:14px;box-shadow:0 16px 35px rgba(20,47,90,.18);padding:6px;max-height:360px;overflow:auto}.global-result{width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:0;background:transparent;border-radius:10px;text-align:left}.global-result:hover{background:#f1f5ff}.global-result span:last-child{display:flex;flex-direction:column;min-width:0}.global-result small{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.global-empty{padding:14px;color:var(--muted);text-align:center}
+.metric-card{height:100%;padding:20px;border:1px solid var(--line-2);border-radius:16px;background:var(--surface);box-shadow:0 7px 20px rgba(32,67,128,.06)}.metric-label{font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:700}.metric-value{font-size:1.7rem;font-weight:800;margin:5px 0}

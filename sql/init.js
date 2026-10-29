@@ -41,9 +41,7 @@ async function init() {
             await conn.query(stmt);
           } catch (e) {
             // Ignore errors for already exists etc, but log
-            if (!e.message.includes('already exists')) {
-              console.warn('⚠️ Statement warning:', e.message.substring(0,150));
-            }
+            if (![1050,1061].includes(e.errno)) throw e;
           }
         }
       }
@@ -60,10 +58,13 @@ async function init() {
       }
     }
 
+    const { runAutoMigrations, default: pool } = await import('../config/db.js');
+    try { await runAutoMigrations(); console.log('✅ Mise à niveau des tables existantes complétée'); } finally { await pool.end(); }
     console.log('🎉 Init terminé avec succès');
   } catch (e) {
     console.error('❌ Erreur init:', e.message);
     console.error(e.stack);
+    process.exitCode = 1;
   } finally {
     if (conn) await conn.end();
   }
